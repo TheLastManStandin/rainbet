@@ -11,6 +11,6 @@
 
 - `backend` is the only Go module (`go 1.22`); `backend/cmd/api/main.go` is the executable entrypoint.
 - `internal/router` registers routes and wraps them with `middleware.BasicAuth`; provide a `middleware.Authenticator` implementation rather than raw credentials.
-- `internal/database` creates the SQLite `users` table and seeds `user` / `user` with `balanceDollars = 100` only when that username is absent; passwords are bcrypt hashes. `internal/user.Store` performs the database-backed credential check.
+- `internal/database` creates the SQLite `users` table and seeds `user` / `user` with `balanceDollars = 100`, a random private `serverSeed`, and `transactionNumber = 0` only when that username is absent; passwords are bcrypt hashes. `internal/user.Store` performs the database-backed credential check.
 - SQLite uses the CGO driver `github.com/mattn/go-sqlite3`. `DATABASE_PATH` overrides the file path; under `task run`, the default is the ignored `backend/rainbet.db`.
-- The current API is `POST /api/mines/bets`; it requires Basic Auth and intentionally returns `501` after strict JSON decoding. Router tests create a temporary SQLite database.
+- The current API is `POST /api/mines/bets`; its strict JSON body includes `clientSeed`, and it intentionally returns `501` after decoding. `internal/provablyfair` must use the stored seed and transaction number with this client seed when bet logic is added. Router tests create a temporary SQLite database.

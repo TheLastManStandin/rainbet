@@ -21,7 +21,7 @@ func TestCreateMinesBetAcceptsRequest(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/api/mines/bets",
-		bytes.NewBufferString(`{"betAmount":10,"gridSize":5,"mines":3,"demo":true}`),
+		bytes.NewBufferString(`{"betAmount":10,"gridSize":5,"mines":3,"demo":true,"clientSeed":"mine-test"}`),
 	)
 	request.SetBasicAuth(testUsername, testPassword)
 

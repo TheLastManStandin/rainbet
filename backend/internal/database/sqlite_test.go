@@ -9,16 +9,26 @@ import (
 func TestOpenSQLiteSeedsDefaultUserBalance(t *testing.T) {
 	db := openTestDatabase(t)
 
-	var balance int64
+	var (
+		balance           int64
+		serverSeed        string
+		transactionNumber int64
+	)
 	if err := db.QueryRow(
-		"SELECT balanceDollars FROM users WHERE username = ?",
+		"SELECT balanceDollars, serverSeed, transactionNumber FROM users WHERE username = ?",
 		defaultUsername,
-	).Scan(&balance); err != nil {
-		t.Fatalf("read default user balance: %v", err)
+	).Scan(&balance, &serverSeed, &transactionNumber); err != nil {
+		t.Fatalf("read default user: %v", err)
 	}
 
 	if balance != defaultBalanceDollars {
 		t.Fatalf("balance = %d, want %d", balance, defaultBalanceDollars)
+	}
+	if serverSeed == "" {
+		t.Fatal("server seed is empty")
+	}
+	if transactionNumber != 0 {
+		t.Fatalf("transaction number = %d, want 0", transactionNumber)
 	}
 }
 
@@ -45,6 +55,13 @@ func TestOpenSQLiteMigratesDefaultUserBalance(t *testing.T) {
 	); err != nil {
 		t.Fatalf("seed legacy user: %v", err)
 	}
+	if _, err := legacyDB.Exec(
+		"INSERT INTO users (username, password_hash) VALUES (?, ?)",
+		"existing-user",
+		"legacy-password-hash",
+	); err != nil {
+		t.Fatalf("seed existing legacy user: %v", err)
+	}
 	if err := legacyDB.Close(); err != nil {
 		t.Fatalf("close legacy database: %v", err)
 	}
@@ -57,16 +74,38 @@ func TestOpenSQLiteMigratesDefaultUserBalance(t *testing.T) {
 		_ = db.Close()
 	})
 
-	var balance int64
+	var (
+		balance           int64
+		serverSeed        string
+		transactionNumber int64
+	)
 	if err := db.QueryRow(
-		"SELECT balanceDollars FROM users WHERE username = ?",
+		"SELECT balanceDollars, serverSeed, transactionNumber FROM users WHERE username = ?",
 		defaultUsername,
-	).Scan(&balance); err != nil {
-		t.Fatalf("read migrated user balance: %v", err)
+	).Scan(&balance, &serverSeed, &transactionNumber); err != nil {
+		t.Fatalf("read migrated user: %v", err)
 	}
 
 	if balance != defaultBalanceDollars {
 		t.Fatalf("balance = %d, want %d", balance, defaultBalanceDollars)
+	}
+	if serverSeed == "" {
+		t.Fatal("migrated server seed is empty")
+	}
+	if transactionNumber != 0 {
+		t.Fatalf("transaction number = %d, want 0", transactionNumber)
+	}
+
+	var usersWithoutFairnessData int
+	if err := db.QueryRow(`
+		SELECT COUNT(*)
+		FROM users
+		WHERE serverSeed IS NULL OR serverSeed = '' OR transactionNumber IS NULL
+	`).Scan(&usersWithoutFairnessData); err != nil {
+		t.Fatalf("count users without fairness data: %v", err)
+	}
+	if usersWithoutFairnessData != 0 {
+		t.Fatalf("users without fairness data = %d, want 0", usersWithoutFairnessData)
 	}
 }
 

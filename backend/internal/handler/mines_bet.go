@@ -8,10 +8,11 @@ import (
 )
 
 type createMinesBetRequest struct {
-	BetAmount json.Number `json:"betAmount"`
-	GridSize  int         `json:"gridSize"`
-	Mines     int         `json:"mines"`
-	Demo      bool        `json:"demo"`
+	BetAmount  json.Number `json:"betAmount"`
+	GridSize   int         `json:"gridSize"`
+	Mines      int         `json:"mines"`
+	Demo       bool        `json:"demo"`
+	ClientSeed string      `json:"clientSeed"`
 }
 
 func CreateMinesBet(w http.ResponseWriter, r *http.Request) {
