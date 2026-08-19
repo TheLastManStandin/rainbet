@@ -1,1 +1,5 @@
 .idea
+bin/
+backend/rainbet.db
+backend/rainbet.db-shm
+backend/rainbet.db-wal

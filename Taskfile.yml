@@ -1,0 +1,34 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  run:
+    desc: Start the backend server
+    dir: backend
+    cmds:
+      - go run ./cmd/api
+
+  test:
+    desc: Run backend tests
+    dir: backend
+    cmds:
+      - go test ./...
+
+  check:
+    desc: Run static checks and tests
+    dir: backend
+    cmds:
+      - go vet ./...
+      - go test ./...
+
+  build:
+    desc: Build the backend binary
+    dir: backend
+    cmds:
+      - mkdir -p ../bin
+      - go build -o ../bin/rainbet-api ./cmd/api

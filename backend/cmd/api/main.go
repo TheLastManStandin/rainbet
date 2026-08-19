@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"os"
 
+	"rainbet/internal/database"
 	"rainbet/internal/router"
+	"rainbet/internal/user"
 )
 
 func main() {
@@ -13,15 +15,20 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	username := os.Getenv("BASIC_AUTH_USERNAME")
-	password := os.Getenv("BASIC_AUTH_PASSWORD")
-	if username == "" || password == "" {
-		log.Fatal("BASIC_AUTH_USERNAME and BASIC_AUTH_PASSWORD must be set")
+	databasePath := os.Getenv("DATABASE_PATH")
+	if databasePath == "" {
+		databasePath = "rainbet.db"
 	}
+
+	db, err := database.OpenSQLite(databasePath)
+	if err != nil {
+		log.Fatalf("open database: %v", err)
+	}
+	defer db.Close()
 
 	server := &http.Server{
 		Addr:    ":" + port,
-		Handler: router.New(username, password),
+		Handler: router.New(user.NewStore(db)),
 	}
 
 	log.Printf("HTTP server listening on %s", server.Addr)

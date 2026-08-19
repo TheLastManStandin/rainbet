@@ -7,8 +7,8 @@ import (
 	"rainbet/internal/middleware"
 )
 
-func New(username, password string) http.Handler {
+func New(authenticator middleware.Authenticator) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/mines/bets", handler.CreateMinesBet)
-	return middleware.BasicAuth(username, password)(mux)
+	return middleware.BasicAuth(authenticator)(mux)
 }

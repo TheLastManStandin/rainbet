@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
+
+	"rainbet/internal/database"
+	"rainbet/internal/user"
 )
 
 const (
-	testUsername = "test-user"
-	testPassword = "test-password"
+	testUsername = "user"
+	testPassword = "user"
 )
 
 func TestCreateMinesBetAcceptsRequest(t *testing.T) {
@@ -21,7 +25,7 @@ func TestCreateMinesBetAcceptsRequest(t *testing.T) {
 	)
 	request.SetBasicAuth(testUsername, testPassword)
 
-	New(testUsername, testPassword).ServeHTTP(recorder, request)
+	testHandler(t).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusNotImplemented {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNotImplemented)
@@ -37,7 +41,7 @@ func TestCreateMinesBetRejectsOtherMethods(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/mines/bets", nil)
 	request.SetBasicAuth(testUsername, testPassword)
 
-	New(testUsername, testPassword).ServeHTTP(recorder, request)
+	testHandler(t).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusMethodNotAllowed)
@@ -52,7 +56,7 @@ func TestCreateMinesBetRequiresAuthentication(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/api/mines/bets", nil)
 
-	New(testUsername, testPassword).ServeHTTP(recorder, request)
+	testHandler(t).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusUnauthorized)
@@ -68,9 +72,23 @@ func TestCreateMinesBetRejectsInvalidAuthentication(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/mines/bets", nil)
 	request.SetBasicAuth(testUsername, "wrong-password")
 
-	New(testUsername, testPassword).ServeHTTP(recorder, request)
+	testHandler(t).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusUnauthorized)
 	}
+}
+
+func testHandler(t *testing.T) http.Handler {
+	t.Helper()
+
+	db, err := database.OpenSQLite(filepath.Join(t.TempDir(), "rainbet.db"))
+	if err != nil {
+		t.Fatalf("open test database: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	return New(user.NewStore(db))
 }
