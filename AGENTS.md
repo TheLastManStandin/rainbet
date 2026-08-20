@@ -5,6 +5,7 @@
 - Run the API from the repository root with `task run`; Task executes it from `backend`.
 - Run `task check` before handoff; it runs `go vet ./...` followed by `go test ./...` inside `backend`.
 - Run the route tests only with `go -C backend test ./internal/router -run 'Test(Mines|CreateMinesBet)'`.
+- Run the HTTP E2E suite with `task e2e`; it starts an in-process TCP server with a temporary SQLite database.
 - `task build` writes `bin/rainbet-api`; `bin/` is ignored.
 
 ## Backend
