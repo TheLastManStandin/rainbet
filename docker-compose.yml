@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PORT: "8080"
+      DATABASE_PATH: /data/rainbet.db
+    volumes:
+      - rainbet-data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  rainbet-data:

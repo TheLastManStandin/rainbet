@@ -21,6 +21,48 @@ const (
 	testPassword = "user"
 )
 
+func TestCurrentUserReturnsBalance(t *testing.T) {
+	handler, _ := testHandler(t)
+
+	assertBalance := func(want string) {
+		t.Helper()
+
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, authenticatedRequest(http.MethodGet, "/api/user", ""))
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d: %s", recorder.Code, http.StatusOK, recorder.Body.String())
+		}
+
+		var response struct {
+			Balance string `json:"balance"`
+		}
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		if response.Balance != want {
+			t.Fatalf("balance = %q, want %q", response.Balance, want)
+		}
+	}
+
+	assertBalance("100.00")
+	createGame(t, handler, `{"betAmount":10.50,"gridSize":25,"mines":3,"demo":false,"clientSeed":"balance-test"}`)
+	assertBalance("89.50")
+}
+
+func TestTopUpBalanceIsPublic(t *testing.T) {
+	handler, db := testHandler(t)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/user/balance", bytes.NewBufferString(`{"username":"user","amount":100}`))
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+	if balance := userBalance(t, db); balance != 20000 {
+		t.Fatalf("balance = %d, want %d", balance, 20000)
+	}
+}
+
 func TestCreateMinesBetCreatesRealGameAndDebitsBalance(t *testing.T) {
 	handler, db := testHandler(t)
 	createdGame := createGame(t, handler, `{"betAmount":10.50,"gridSize":25,"mines":3,"demo":false,"clientSeed":"mine-test"}`)

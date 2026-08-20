@@ -43,3 +43,29 @@ func (s *Store) Authenticate(ctx context.Context, username, password string) (in
 
 	return userID, true, nil
 }
+
+func (s *Store) Balance(ctx context.Context, userID int64) (int64, error) {
+	var balance int64
+	if err := s.db.QueryRowContext(
+		ctx,
+		"SELECT balanceDollars FROM users WHERE id = ?",
+		userID,
+	).Scan(&balance); err != nil {
+		return 0, fmt.Errorf("read user balance: %w", err)
+	}
+
+	return balance, nil
+}
+
+func (s *Store) AddBalance(ctx context.Context, username string, amountCents int64) error {
+	if _, err := s.db.ExecContext(
+		ctx,
+		"UPDATE users SET balanceDollars = balanceDollars + ? WHERE username = ?",
+		amountCents,
+		username,
+	); err != nil {
+		return fmt.Errorf("add user balance: %w", err)
+	}
+
+	return nil
+}
