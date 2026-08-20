@@ -1,5 +1,12 @@
 const gridSizes = [25, 36, 49, 64];
 const storageKey = "rainbet-mines-auth";
+const bombFrames = [
+  "/assets/mine/2.webp",
+  "/assets/mine/7.webp",
+  "/assets/mine/14.webp",
+  "/assets/mine/22.webp",
+  "/assets/mine/26.webp",
+];
 
 const state = {
   auth: loadAuth(),
@@ -39,6 +46,7 @@ const elements = {
   toast: document.querySelector("#toast"),
 };
 
+let bombAnimationTimer;
 let toastTimer;
 
 function loadAuth() {
@@ -72,6 +80,31 @@ function showToast(message, isError = false) {
   elements.toast.classList.toggle("error", isError);
   elements.toast.classList.add("show");
   toastTimer = setTimeout(() => elements.toast.classList.remove("show"), 3600);
+}
+
+function stopBombAnimation() {
+  clearTimeout(bombAnimationTimer);
+  bombAnimationTimer = null;
+}
+
+function playBombAnimation(gameID) {
+  const frameOrder = [0, 1, 2, 3, 4, 0];
+  stopBombAnimation();
+
+  function showFrame(orderIndex) {
+    if (!state.game || state.game.id !== gameID || state.game.status !== "failed") return;
+
+    const bomb = elements.board.querySelector(".bomb-frame");
+    if (!bomb) return;
+
+    bomb.src = bombFrames[frameOrder[orderIndex]];
+    if (orderIndex === frameOrder.length - 1) return;
+
+    const delay = orderIndex === frameOrder.length - 2 ? 350 : 110;
+    bombAnimationTimer = setTimeout(() => showFrame(orderIndex + 1), delay);
+  }
+
+  showFrame(0);
 }
 
 function showAuth(message = "Your session needs authorization.") {
@@ -142,8 +175,10 @@ function renderBoard() {
       const isBomb = lastMove && lastMove.result === "bomb" && lastMove.cellIndex === index;
       cell.classList.add(isBomb ? "open-bomb" : "open-diamond");
       if (isBomb) {
-        const bomb = document.createElement("span");
-        bomb.className = "bomb";
+        const bomb = document.createElement("img");
+        bomb.className = "bomb-frame";
+        bomb.src = bombFrames[0];
+        bomb.alt = "Mine";
         cell.append(bomb);
       } else {
         const diamond = document.createElement("img");
@@ -245,6 +280,7 @@ async function refreshBalance() {
 async function startGame() {
   setError();
   if (state.game && state.game.status === "inProcess") return;
+  stopBombAnimation();
 
   const amount = elements.betAmount.value.trim();
   if (!amount || Number(amount) <= 0) {
@@ -286,6 +322,7 @@ async function startGame() {
 async function openCell(cellIndex) {
   if (!state.game || state.game.status !== "inProcess" || state.loading) return;
 
+  let bombOpened = false;
   setLoading(true);
   try {
     const move = await api(`/mines/bets/${state.game.id}/moves`, {
@@ -297,11 +334,13 @@ async function openCell(cellIndex) {
     state.game.openedCells = move.openedCells;
     state.game.multiplier = move.multiplier || null;
     state.game.lastMove = { cellIndex, result: move.result };
+    bombOpened = move.result === "bomb";
     showToast(move.result === "bomb" ? "A mine was revealed." : "Diamond revealed.", move.result === "bomb");
   } catch (error) {
     if (error.message !== "Authentication required") showToast(error.message, true);
   } finally {
     setLoading(false);
+    if (bombOpened && state.game) playBombAnimation(state.game.id);
   }
 }
 
@@ -348,7 +387,10 @@ async function topUpBalance() {
 }
 
 function updateGridSize(gridSize) {
-  if (state.game && state.game.status !== "inProcess") state.game = null;
+  if (state.game && state.game.status !== "inProcess") {
+    stopBombAnimation();
+    state.game = null;
+  }
   state.gridSize = gridSize;
   state.mines = Math.min(Math.max(state.mines, 1), gridSize - 1);
   renderControls();
@@ -367,6 +409,7 @@ function switchUser() {
   if (state.loading || (state.game && state.game.status === "inProcess")) return;
 
   localStorage.removeItem(storageKey);
+  stopBombAnimation();
   state.auth = null;
   state.balance = null;
   state.game = null;
