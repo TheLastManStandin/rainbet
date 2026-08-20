@@ -17,26 +17,29 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) Authenticate(ctx context.Context, username, password string) (bool, error) {
-	var passwordHash string
+func (s *Store) Authenticate(ctx context.Context, username, password string) (int64, bool, error) {
+	var (
+		userID       int64
+		passwordHash string
+	)
 	err := s.db.QueryRowContext(
 		ctx,
-		"SELECT password_hash FROM users WHERE username = ?",
+		"SELECT id, password_hash FROM users WHERE username = ?",
 		username,
-	).Scan(&passwordHash)
+	).Scan(&userID, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return 0, false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("find user: %w", err)
+		return 0, false, fmt.Errorf("find user: %w", err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return false, nil
+			return 0, false, nil
 		}
-		return false, fmt.Errorf("compare password: %w", err)
+		return 0, false, fmt.Errorf("compare password: %w", err)
 	}
 
-	return true, nil
+	return userID, true, nil
 }

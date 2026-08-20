@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"rainbet/internal/database"
+	"rainbet/internal/game"
 	"rainbet/internal/router"
 	"rainbet/internal/user"
 )
@@ -28,7 +29,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":" + port,
-		Handler: router.New(user.NewStore(db)),
+		Handler: router.New(user.NewStore(db), game.NewStore(db)),
 	}
 
 	log.Printf("HTTP server listening on %s", server.Addr)
