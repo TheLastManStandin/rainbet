@@ -348,6 +348,7 @@ async function topUpBalance() {
 }
 
 function updateGridSize(gridSize) {
+  if (state.game && state.game.status !== "inProcess") state.game = null;
   state.gridSize = gridSize;
   state.mines = Math.min(Math.max(state.mines, 1), gridSize - 1);
   renderControls();

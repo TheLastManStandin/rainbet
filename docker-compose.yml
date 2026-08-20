@@ -16,5 +16,13 @@ services:
     ports:
       - "8080:80"
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://frontend:80
+    depends_on:
+      - frontend
+    profiles:
+      - tunnel
+
 volumes:
   rainbet-data:

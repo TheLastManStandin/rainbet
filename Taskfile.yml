@@ -38,3 +38,14 @@ tasks:
     cmds:
       - mkdir -p ../bin
       - go build -o ../bin/rainbet-api ./cmd/api
+
+  compose:
+    desc: Build and start the full Docker Compose stack
+    cmds:
+      - docker compose up --build --detach
+
+  tunnel:
+    desc: Start the stack and print a public Cloudflare Quick Tunnel URL
+    cmds:
+      - docker compose up --build --detach
+      - docker compose --profile tunnel run --rm tunnel

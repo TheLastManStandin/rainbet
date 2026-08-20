@@ -8,6 +8,7 @@
 - Run the HTTP E2E suite with `task e2e`; it starts an in-process TCP server with a temporary SQLite database.
 - `task build` writes `bin/rainbet-api`; `bin/` is ignored.
 - Run the complete application with `docker compose up --build`; the frontend is available at `http://localhost:8080` and proxies `/api` to the backend.
+- `task compose` runs the full stack in the background. `task tunnel` starts it and prints a temporary public Cloudflare Quick Tunnel URL; press `Ctrl+C` to stop only the tunnel.
 - Stop the Compose stack with `docker compose down`; its `rainbet-data` volume keeps the SQLite database between runs.
 - Inspect or mutate the Compose database with `docker compose exec backend sqlite3 /data/rainbet.db`.
 
