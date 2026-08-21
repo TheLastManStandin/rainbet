@@ -44,6 +44,11 @@ tasks:
     cmds:
       - docker compose up --build --detach
 
+  rebuild:
+    desc: Rebuild and start the full Docker Compose stack
+    cmds:
+      - docker compose build --no-cache && docker compose up -d
+
   tunnel:
     desc: Start the stack and print a public Cloudflare Quick Tunnel URL
     cmds:

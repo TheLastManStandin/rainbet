@@ -183,7 +183,7 @@ function renderBoard() {
       } else {
         const diamond = document.createElement("img");
         diamond.className = "tile-icon";
-        diamond.src = "/assets/diamond-final.png";
+        diamond.src = "/assets/diamond-high-quality.webp";
         diamond.alt = "Diamond";
         cell.append(diamond);
       }

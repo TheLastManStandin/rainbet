@@ -128,8 +128,8 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 }
 
 .tile.open-bomb { border-color: rgba(255, 104, 121, .8); background: radial-gradient(circle at 50% 45%, #ff7f84, #96364c 66%, #572137); box-shadow: 0 0 24px rgba(255, 83, 103, .25); }
-.tile-icon { position: relative; z-index: 1; width: 55%; height: 55%; object-fit: contain; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .25)); }
-.bomb-frame { position: relative; z-index: 1; width: 150%; height: 150%; object-fit: contain; transform: translateY(-6%); }
+.tile-icon { position: relative; z-index: 1; width: 85%; height: 85%; object-fit: contain; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .25)); }
+.bomb-frame { position: relative; z-index: 1; width: 225%; height: 225%; object-fit: contain; transform: translateY(-10%); }
 .board-footer { color: #7785a2; font-size: 11px; }
 .board-footer > div { display: flex; align-items: center; gap: 7px; }
 .footer-dot { width: 5px; height: 5px; border-radius: 50%; background: #6e7c98; }
