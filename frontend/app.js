@@ -74,9 +74,9 @@ const elements = {
 const bombFrames = [];
 const sounds = {
   click: new Audio("/assets/sounds/button-click.mp3"),
-  gem: new Audio("/assets/sounds/win-display-4.mp3"),
+  gem: new Audio("/assets/sounds/final-win-4.mp3"),
   bomb: new Audio("/assets/sounds/bomb_5.mp3"),
-  win: new Audio("/assets/sounds/final-win-4.mp3"),
+  win: new Audio("/assets/sounds/win-display-4.mp3"),
 };
 
 let toastTimer;
@@ -839,14 +839,12 @@ function signOut() {
 elements.gridOptions.addEventListener("click", (event) => {
   const option = event.target.closest("[data-grid-size]");
   if (!option || option.disabled) return;
-  playSound("click");
   updateGridSize(Number(option.dataset.gridSize));
 });
 
 elements.betMode.addEventListener("click", (event) => {
   const tab = event.target.closest("[data-mode]");
   if (!tab || tab.disabled) return;
-  playSound("click");
   switchMode(tab.dataset.mode);
 });
 
