@@ -20,7 +20,7 @@ const state = {
   mode: "manual",
   gridSize: loadGridSize(),
   mines: 8,
-  betAmount: "0.00",
+  betAmount: "10.00",
   game: null,
   cells: [],
   selected: new Set(),

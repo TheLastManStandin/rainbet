@@ -4,7 +4,7 @@
 
 - Run the API from the repository root with `task run`; Task executes it from `backend`.
 - Run `task check` before handoff; it runs `go vet ./...` followed by `go test ./...` inside `backend`.
-- Run the route tests only with `go -C backend test ./internal/router -run 'Test(Mines|CreateMinesBet)'`.
+- Run the HTTP adapter tests only with `go -C backend test ./internal/delivery/httpapi`.
 - Run the HTTP E2E suite with `task e2e`; it starts an in-process TCP server with a temporary SQLite database.
 - `task build` writes `bin/rainbet-api`; `bin/` is ignored.
 - Run the complete application with `docker compose up --build`; the frontend is available at `http://localhost:8080` and proxies `/api` to the backend.
@@ -15,9 +15,12 @@
 ## Backend
 
 - `backend` is the only Go module (`go 1.22`); `backend/cmd/api/main.go` is the executable entrypoint.
-- `internal/router` registers routes and wraps them with `middleware.BasicAuth`; provide a `middleware.Authenticator` implementation rather than raw credentials.
-- `middleware.BasicAuth` stores the authenticated user ID in the request context; handlers should use `middleware.UserIDFromContext` instead of parsing Basic Auth again.
-- `internal/database` creates the SQLite `users` table and seeds `user` / `user` with `balanceDollars = 10000` ($100.00 in cents), a random private `serverSeed`, and `transactionNumber = 0` only when that username is absent; passwords are bcrypt hashes. `internal/user.Store` performs the database-backed credential check.
+- `internal/domain` owns entities and business rules and must not import application, delivery, or infrastructure packages.
+- `internal/application` owns use cases and ports. Keep HTTP, SQL, bcrypt, and driver details outside this layer.
+- `internal/delivery/httpapi` registers routes, handles JSON/Basic Auth, and translates domain/application errors into HTTP responses.
+- `internal/infrastructure/sqlite` creates and migrates the SQLite schema and implements application repositories plus the Unit of Work. It seeds `user` / `user` with `balanceDollars = 10000` ($100.00 in cents), a random private `serverSeed`, and `transactionNumber = 0` only when that username is absent.
+- `internal/infrastructure/password` implements password verification with bcrypt; `internal/infrastructure/fairness` implements deterministic mine generation.
+- `cmd/api/main.go` is the composition root. Construct and connect concrete adapters there rather than inside application or domain packages.
 - `games` uses `userId` as a foreign key to `users`, `betAmount BIGINT` in cents, `gridSize` as the total cell count, `mines`, `demo`, JSON text in `openedCells`, statuses `inProcess`, `cachedOut`, or `failed`, game seed inputs/nonce, and `startedAt`.
 - SQLite uses the CGO driver `github.com/mattn/go-sqlite3` with foreign key enforcement enabled. `DATABASE_PATH` overrides the file path; under `task run`, the default is the ignored `backend/rainbet.db`.
 - `GET /api/user` returns the authenticated user's `balance` as a two-decimal dollar string.

@@ -44,15 +44,21 @@ Nginx frontend (HTML, CSS, JavaScript)
   │ /api/* proxy
   ▼
 Go API
-  │
+  │ clean architecture
   ▼
 SQLite (/data/rainbet.db)
 ```
 
 - `frontend/` содержит статический интерфейс Mines. Nginx отдаёт файлы и проксирует `/api/` в backend service.
-- `backend/` содержит Go API, Basic Auth, игровую логику, расчёт коэффициентов и provably fair seed/nonce данные.
-- `backend/internal/database` создаёт и мигрирует SQLite schema. Денежные значения хранятся в центах.
+- `backend/internal/domain` содержит сущности и чистые бизнес-правила аккаунта и Mines, включая расчёт коэффициентов и выплат.
+- `backend/internal/application` содержит use cases и входные/выходные порты. Этот слой не знает о HTTP, SQLite и bcrypt.
+- `backend/internal/delivery/httpapi` адаптирует HTTP/JSON и Basic Auth к application services.
+- `backend/internal/infrastructure` реализует порты для SQLite, bcrypt и provably fair генератора.
+- `backend/cmd/api/main.go` — composition root: создаёт адаптеры, связывает зависимости и запускает сервер.
+- SQLite schema сохраняет денежные значения в целых центах; игровые операции выполняются атомарно через Unit of Work.
 - `docker-compose.yml` запускает frontend и backend, а profile `tunnel` содержит Cloudflare Quick Tunnel service.
+
+Зависимости направлены внутрь: `delivery` и `infrastructure` зависят от `application`/`domain`, а domain не импортирует внешние слои.
 
 ## Технологии
 

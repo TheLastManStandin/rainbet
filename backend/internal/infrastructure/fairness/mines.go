@@ -1,4 +1,4 @@
-package provablyfair
+package fairness
 
 import (
 	"crypto/hmac"
@@ -8,11 +8,25 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+
+	"rainbet/internal/domain/mines"
 )
 
 const uint32Range = uint64(1) << 32
 
-type MinesOptions struct {
+type Generator struct{}
+
+func (Generator) Indexes(game *mines.Game) ([]int, error) {
+	return DetermineMineIndexes(Options{
+		Tiles:             game.GridSize,
+		Mines:             game.Mines,
+		ClientSeed:        game.ClientSeed,
+		ServerSeed:        game.ServerSeed,
+		TransactionNumber: game.Nonce,
+	})
+}
+
+type Options struct {
 	Tiles             int
 	Mines             int
 	ClientSeed        string
@@ -33,11 +47,10 @@ func GenerateServerSeed() (string, error) {
 	if _, err := rand.Read(seed); err != nil {
 		return "", fmt.Errorf("generate server seed: %w", err)
 	}
-
 	return hex.EncodeToString(seed), nil
 }
 
-func DetermineMineIndexes(options MinesOptions) ([]int, error) {
+func DetermineMineIndexes(options Options) ([]int, error) {
 	if options.Tiles <= 0 || uint64(options.Tiles) > uint32Range {
 		return nil, fmt.Errorf("invalid tile count")
 	}
@@ -58,18 +71,12 @@ func DetermineMineIndexes(options MinesOptions) ([]int, error) {
 	for i := range indexes {
 		indexes[i] = i
 	}
-
 	message := options.ClientSeed + ":" + strconv.FormatInt(options.TransactionNumber, 10) + ":mines"
-	stream := newUint32Stream(options.ServerSeed, message)
-	return drawWithoutReplacement(stream, indexes, options.Mines)
+	return drawWithoutReplacement(newUint32Stream(options.ServerSeed, message), indexes, options.Mines)
 }
 
 func newUint32Stream(key, message string) *uint32Stream {
-	return &uint32Stream{
-		key:     []byte(key),
-		message: message,
-		index:   sha512.Size / 4,
-	}
+	return &uint32Stream{key: []byte(key), message: message, index: sha512.Size / 4}
 }
 
 func (stream *uint32Stream) next() uint32 {
@@ -83,7 +90,6 @@ func (stream *uint32Stream) next() uint32 {
 		stream.step++
 		stream.index = 0
 	}
-
 	value := stream.values[stream.index]
 	stream.index++
 	return value
@@ -91,7 +97,6 @@ func (stream *uint32Stream) next() uint32 {
 
 func drawWithoutReplacement(stream *uint32Stream, values []int, count int) ([]int, error) {
 	result := append([]int(nil), values...)
-
 	for i := len(result) - 1; i >= len(result)-count; i-- {
 		index, err := unbiasedInt(stream, i+1)
 		if err != nil {
@@ -99,7 +104,6 @@ func drawWithoutReplacement(stream *uint32Stream, values []int, count int) ([]in
 		}
 		result[i], result[index] = result[index], result[i]
 	}
-
 	return result[len(result)-count:], nil
 }
 
@@ -107,7 +111,6 @@ func unbiasedInt(stream *uint32Stream, upperBound int) (int, error) {
 	if upperBound <= 0 || uint64(upperBound) > uint32Range {
 		return 0, fmt.Errorf("invalid upper bound")
 	}
-
 	maxAcceptable := uint32Range - uint32Range%uint64(upperBound)
 	for {
 		value := uint64(stream.next())

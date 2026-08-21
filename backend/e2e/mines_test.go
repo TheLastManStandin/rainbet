@@ -11,11 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	"rainbet/internal/database"
-	"rainbet/internal/game"
-	"rainbet/internal/provablyfair"
-	"rainbet/internal/router"
-	"rainbet/internal/user"
+	"rainbet/internal/application"
+	"rainbet/internal/delivery/httpapi"
+	"rainbet/internal/domain/mines"
+	"rainbet/internal/infrastructure/fairness"
+	"rainbet/internal/infrastructure/password"
+	"rainbet/internal/infrastructure/sqlite"
 )
 
 const (
@@ -64,7 +65,7 @@ func TestMinesCashoutEndToEnd(t *testing.T) {
 
 	var move moveResponse
 	decodeJSON(t, body, &move)
-	if move.Status != game.StatusInProcess || move.Result != "diamond" || len(move.OpenedCells) != 1 {
+	if move.Status != string(mines.StatusInProcess) || move.Result != "diamond" || len(move.OpenedCells) != 1 {
 		t.Fatalf("move response = %+v", move)
 	}
 
@@ -75,7 +76,7 @@ func TestMinesCashoutEndToEnd(t *testing.T) {
 
 	var cashout cashoutResponse
 	decodeJSON(t, body, &cashout)
-	if cashout.Status != game.StatusCachedOut || cashout.Payout != "11.44" || cashout.Multiplier != "1.09" {
+	if cashout.Status != string(mines.StatusCachedOut) || cashout.Payout != "11.44" || cashout.Multiplier != "1.09" {
 		t.Fatalf("cashout response = %+v", cashout)
 	}
 	if balance := userBalance(t, backend.db); balance != 10094 {
@@ -106,7 +107,7 @@ func TestMinesBombEndToEnd(t *testing.T) {
 
 	var move moveResponse
 	decodeJSON(t, body, &move)
-	if move.Status != game.StatusFailed || move.Result != "bomb" {
+	if move.Status != string(mines.StatusFailed) || move.Result != "bomb" {
 		t.Fatalf("move response = %+v", move)
 	}
 	if balance := userBalance(t, backend.db); balance != 9000 {
@@ -142,7 +143,7 @@ func TestMinesDemoEndToEnd(t *testing.T) {
 
 	var cashout cashoutResponse
 	decodeJSON(t, body, &cashout)
-	if cashout.Status != game.StatusCachedOut || cashout.Payout != "0.00" {
+	if cashout.Status != string(mines.StatusCachedOut) || cashout.Payout != "0.00" {
 		t.Fatalf("cashout response = %+v", cashout)
 	}
 	if balance := userBalance(t, backend.db); balance != 10000 {
@@ -171,7 +172,7 @@ func TestMinesRequiresBasicAuthEndToEnd(t *testing.T) {
 func newTestBackend(t *testing.T) *testBackend {
 	t.Helper()
 
-	db, err := database.OpenSQLite(filepath.Join(t.TempDir(), "rainbet.db"))
+	db, err := sqlite.Open(filepath.Join(t.TempDir(), "rainbet.db"))
 	if err != nil {
 		t.Fatalf("open test database: %v", err)
 	}
@@ -184,7 +185,10 @@ func newTestBackend(t *testing.T) *testBackend {
 		t.Fatalf("configure test user: %v", err)
 	}
 
-	server := httptest.NewServer(router.New(user.NewStore(db), game.NewStore(db)))
+	store := sqlite.NewStore(db)
+	accounts := application.NewAccountService(store.Accounts(), password.Bcrypt{})
+	games := application.NewMinesService(store, fairness.Generator{})
+	server := httptest.NewServer(httpapi.New(accounts, games))
 	t.Cleanup(func() {
 		server.Close()
 		_ = db.Close()
@@ -203,7 +207,7 @@ func createGame(t *testing.T, backend *testBackend, body string) createGameRespo
 
 	var createdGame createGameResponse
 	decodeJSON(t, responseBody, &createdGame)
-	if createdGame.ID <= 0 || createdGame.Status != game.StatusInProcess {
+	if createdGame.ID <= 0 || createdGame.Status != string(mines.StatusInProcess) {
 		t.Fatalf("create game response = %+v", createdGame)
 	}
 
@@ -254,7 +258,7 @@ func mineIndexes(t *testing.T, db *sql.DB, gameID int64) []int {
 		t.Fatalf("read game fairness data: %v", err)
 	}
 
-	indexes, err := provablyfair.DetermineMineIndexes(provablyfair.MinesOptions{
+	indexes, err := fairness.DetermineMineIndexes(fairness.Options{
 		Tiles:             gridSize,
 		Mines:             mines,
 		ServerSeed:        serverSeed,

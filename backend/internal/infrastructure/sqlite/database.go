@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 
-	"rainbet/internal/provablyfair"
+	"rainbet/internal/infrastructure/fairness"
 )
 
 const (
@@ -19,34 +19,28 @@ const (
 	moneyCentsMigration = "money_cents_v1"
 )
 
-func OpenSQLite(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", sqliteDSN(path))
+func Open(path string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", dataSourceName(path))
 	if err != nil {
 		return nil, fmt.Errorf("open SQLite database: %w", err)
 	}
-
 	if err := migrate(db); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
-
 	return db, nil
 }
 
-func sqliteDSN(path string) string {
+func dataSourceName(path string) string {
+	options := "_foreign_keys=on&_busy_timeout=5000&_txlock=immediate"
 	if strings.Contains(path, "?") {
-		return path + "&_foreign_keys=on"
+		return path + "&" + options
 	}
-
-	return path + "?_foreign_keys=on"
+	return path + "?" + options
 }
 
 func migrate(db *sql.DB) error {
-	if _, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS schema_migrations (
-			name TEXT PRIMARY KEY
-		)
-	`); err != nil {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY)`); err != nil {
 		return fmt.Errorf("create schema migrations table: %w", err)
 	}
 	if _, err := db.Exec(`
@@ -84,19 +78,16 @@ func migrate(db *sql.DB) error {
 		return fmt.Errorf("create games user index: %w", err)
 	}
 
-	if _, err := ensureColumn(db, "games", "betAmount", "betAmount BIGINT NOT NULL DEFAULT 0"); err != nil {
-		return err
+	for _, column := range []struct{ table, name, definition string }{
+		{"games", "betAmount", "betAmount BIGINT NOT NULL DEFAULT 0"},
+		{"games", "gridSize", "gridSize INTEGER NOT NULL DEFAULT 0"},
+		{"games", "mines", "mines INTEGER NOT NULL DEFAULT 0"},
+		{"games", "demo", "demo BOOLEAN NOT NULL DEFAULT 0"},
+	} {
+		if _, err := ensureColumn(db, column.table, column.name, column.definition); err != nil {
+			return err
+		}
 	}
-	if _, err := ensureColumn(db, "games", "gridSize", "gridSize INTEGER NOT NULL DEFAULT 0"); err != nil {
-		return err
-	}
-	if _, err := ensureColumn(db, "games", "mines", "mines INTEGER NOT NULL DEFAULT 0"); err != nil {
-		return err
-	}
-	if _, err := ensureColumn(db, "games", "demo", "demo BOOLEAN NOT NULL DEFAULT 0"); err != nil {
-		return err
-	}
-
 	balanceColumnAdded, err := ensureColumn(db, "users", "balanceDollars", "balanceDollars BIGINT NOT NULL DEFAULT 0")
 	if err != nil {
 		return err
@@ -115,11 +106,10 @@ func migrate(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("hash default user password: %w", err)
 	}
-	serverSeed, err := provablyfair.GenerateServerSeed()
+	serverSeed, err := fairness.GenerateServerSeed()
 	if err != nil {
 		return err
 	}
-
 	if _, err := db.Exec(`
 		INSERT INTO users (username, password_hash, balanceDollars, serverSeed, transactionNumber)
 		VALUES (?, ?, ?, ?, 0)
@@ -127,13 +117,8 @@ func migrate(db *sql.DB) error {
 	`, defaultUsername, string(passwordHash), defaultBalanceCents, serverSeed); err != nil {
 		return fmt.Errorf("seed default user: %w", err)
 	}
-
 	if balanceColumnAdded {
-		if _, err := db.Exec(
-			"UPDATE users SET balanceDollars = ? WHERE username = ?",
-			defaultBalanceCents,
-			defaultUsername,
-		); err != nil {
+		if _, err := db.Exec("UPDATE users SET balanceDollars = ? WHERE username = ?", defaultBalanceCents, defaultUsername); err != nil {
 			return fmt.Errorf("set default user balance: %w", err)
 		}
 	}
@@ -143,7 +128,6 @@ func migrate(db *sql.DB) error {
 	if _, err := db.Exec("UPDATE users SET transactionNumber = 0 WHERE transactionNumber IS NULL"); err != nil {
 		return fmt.Errorf("set missing transaction numbers: %w", err)
 	}
-
 	return nil
 }
 
@@ -165,7 +149,6 @@ func migrateMoneyToCents(db *sql.DB) error {
 	if !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("check money migration: %w", err)
 	}
-
 	if _, err := tx.Exec("UPDATE users SET balanceDollars = balanceDollars * 100"); err != nil {
 		return fmt.Errorf("convert user balances to cents: %w", err)
 	}
@@ -175,11 +158,9 @@ func migrateMoneyToCents(db *sql.DB) error {
 	if _, err := tx.Exec("INSERT INTO schema_migrations (name) VALUES (?)", moneyCentsMigration); err != nil {
 		return fmt.Errorf("record money migration: %w", err)
 	}
-
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit money migration: %w", err)
 	}
-
 	return nil
 }
 
@@ -189,7 +170,6 @@ func ensureColumn(db *sql.DB, tableName, columnName, definition string) (bool, e
 		return false, fmt.Errorf("inspect %s table: %w", tableName, err)
 	}
 	defer rows.Close()
-
 	for rows.Next() {
 		var id, notNull, primaryKey int
 		var name, dataType string
@@ -204,11 +184,9 @@ func ensureColumn(db *sql.DB, tableName, columnName, definition string) (bool, e
 	if err := rows.Err(); err != nil {
 		return false, fmt.Errorf("iterate %s table columns: %w", tableName, err)
 	}
-
 	if _, err := db.Exec("ALTER TABLE " + tableName + " ADD COLUMN " + definition); err != nil {
 		return false, fmt.Errorf("add %s %s column: %w", tableName, columnName, err)
 	}
-
 	return true, nil
 }
 
@@ -217,32 +195,30 @@ func backfillServerSeeds(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("find users without server seeds: %w", err)
 	}
-	defer rows.Close()
-
 	var userIDs []int64
 	for rows.Next() {
 		var id int64
 		if err := rows.Scan(&id); err != nil {
+			_ = rows.Close()
 			return fmt.Errorf("read user without server seed: %w", err)
 		}
 		userIDs = append(userIDs, id)
 	}
 	if err := rows.Err(); err != nil {
+		_ = rows.Close()
 		return fmt.Errorf("iterate users without server seeds: %w", err)
 	}
 	if err := rows.Close(); err != nil {
 		return fmt.Errorf("close users without server seeds: %w", err)
 	}
-
 	for _, id := range userIDs {
-		serverSeed, err := provablyfair.GenerateServerSeed()
+		seed, err := fairness.GenerateServerSeed()
 		if err != nil {
 			return err
 		}
-		if _, err := db.Exec("UPDATE users SET serverSeed = ? WHERE id = ?", serverSeed, id); err != nil {
+		if _, err := db.Exec("UPDATE users SET serverSeed = ? WHERE id = ?", seed, id); err != nil {
 			return fmt.Errorf("set user server seed: %w", err)
 		}
 	}
-
 	return nil
 }

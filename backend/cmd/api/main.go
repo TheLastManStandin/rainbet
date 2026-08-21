@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"rainbet/internal/database"
-	"rainbet/internal/game"
-	"rainbet/internal/router"
-	"rainbet/internal/user"
+	"rainbet/internal/application"
+	"rainbet/internal/delivery/httpapi"
+	"rainbet/internal/infrastructure/fairness"
+	"rainbet/internal/infrastructure/password"
+	"rainbet/internal/infrastructure/sqlite"
 )
 
 func main() {
@@ -21,15 +22,19 @@ func main() {
 		databasePath = "rainbet.db"
 	}
 
-	db, err := database.OpenSQLite(databasePath)
+	db, err := sqlite.Open(databasePath)
 	if err != nil {
 		log.Fatalf("open database: %v", err)
 	}
 	defer db.Close()
 
+	store := sqlite.NewStore(db)
+	accounts := application.NewAccountService(store.Accounts(), password.Bcrypt{})
+	games := application.NewMinesService(store, fairness.Generator{})
+
 	server := &http.Server{
 		Addr:    ":" + port,
-		Handler: router.New(user.NewStore(db), game.NewStore(db)),
+		Handler: httpapi.New(accounts, games),
 	}
 
 	log.Printf("HTTP server listening on %s", server.Addr)
