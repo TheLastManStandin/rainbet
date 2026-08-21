@@ -53,6 +53,8 @@ const elements = {
   mineCount: document.querySelector("#mine-count"),
   minesTopBar: document.querySelector("#mines-top-bar"),
   minesThumb: document.querySelector("#mines-thumb"),
+  minesTrack: document.querySelector(".bar-content-container"),
+  minesBar: document.querySelector(".bar-content"),
   multiplierCurrent: document.querySelector("#multiplier-current"),
   multiplierNext: document.querySelector("#multiplier-next"),
   placeBet: document.querySelector("#place-bet"),
@@ -849,6 +851,45 @@ elements.betMode.addEventListener("click", (event) => {
 });
 
 elements.mineCount.addEventListener("input", (event) => updateGemCount(event.target.value));
+
+function gemCountFromPointer(event) {
+  const bar = elements.minesBar.getBoundingClientRect();
+  if (!bar.width) return null;
+  const fraction = Math.min(Math.max((event.clientX - bar.left) / bar.width, 0), 1);
+  const maxGems = state.gridSize - 1;
+  return Math.round(1 + fraction * (maxGems - 1));
+}
+
+let draggingSlider = false;
+
+elements.minesTrack.addEventListener("pointerdown", (event) => {
+  if (elements.mineCount.disabled) return;
+  const gems = gemCountFromPointer(event);
+  if (gems === null) return;
+  draggingSlider = true;
+  elements.minesTrack.setPointerCapture(event.pointerId);
+  event.preventDefault();
+  updateGemCount(gems);
+});
+
+elements.minesTrack.addEventListener("pointermove", (event) => {
+  if (!draggingSlider) return;
+  const gems = gemCountFromPointer(event);
+  if (gems === null) return;
+  event.preventDefault();
+  updateGemCount(gems);
+});
+
+function stopSliderDrag(event) {
+  if (!draggingSlider) return;
+  draggingSlider = false;
+  if (elements.minesTrack.hasPointerCapture(event.pointerId)) {
+    elements.minesTrack.releasePointerCapture(event.pointerId);
+  }
+}
+
+elements.minesTrack.addEventListener("pointerup", stopSliderDrag);
+elements.minesTrack.addEventListener("pointercancel", stopSliderDrag);
 
 elements.betAmount.addEventListener("change", (event) => {
   state.betAmount = event.target.value;
