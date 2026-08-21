@@ -11,6 +11,8 @@ import (
 	"rainbet/internal/provablyfair"
 )
 
+const maxMultiplierHundredths = 100000000
+
 type MoveInput struct {
 	UserID    int64
 	GameID    int64
@@ -22,6 +24,7 @@ type MoveResult struct {
 	Result      string `json:"result"`
 	OpenedCells []int  `json:"openedCells"`
 	Multiplier  string `json:"multiplier,omitempty"`
+	MineIndexes []int  `json:"mineIndexes,omitempty"`
 }
 
 type CashOutInput struct {
@@ -30,9 +33,10 @@ type CashOutInput struct {
 }
 
 type CashOutResult struct {
-	Status     string `json:"status"`
-	Payout     string `json:"payout"`
-	Multiplier string `json:"multiplier"`
+	Status      string `json:"status"`
+	Payout      string `json:"payout"`
+	Multiplier  string `json:"multiplier"`
+	MineIndexes []int  `json:"mineIndexes,omitempty"`
 }
 
 type storedGame struct {
@@ -133,6 +137,7 @@ func (s *Store) Move(ctx context.Context, input MoveInput) (MoveResult, error) {
 			Status:      StatusFailed,
 			Result:      "bomb",
 			OpenedCells: openedCells,
+			MineIndexes: mineIndexes,
 		}, nil
 	}
 
@@ -140,7 +145,7 @@ func (s *Store) Move(ctx context.Context, input MoveInput) (MoveResult, error) {
 		Status:      StatusInProcess,
 		Result:      "diamond",
 		OpenedCells: openedCells,
-		Multiplier:  multiplier.FloatString(8),
+		Multiplier:  formatMultiplier(multiplier),
 	}, nil
 }
 
@@ -170,9 +175,19 @@ func (s *Store) CashOut(ctx context.Context, input CashOutInput) (CashOutResult,
 	if err != nil {
 		return CashOutResult{}, err
 	}
-	payout, err := payoutFor(game.BetAmount, multiplier)
+	payout, err := payoutFor(game.BetAmount, truncateMultiplier(multiplier))
 	if err != nil {
 		return CashOutResult{}, err
+	}
+	mineIndexes, err := provablyfair.DetermineMineIndexes(provablyfair.MinesOptions{
+		Tiles:             game.GridSize,
+		Mines:             game.Mines,
+		ClientSeed:        game.ClientSeed,
+		ServerSeed:        game.ServerSeed,
+		TransactionNumber: game.Nonce,
+	})
+	if err != nil {
+		return CashOutResult{}, fmt.Errorf("determine mine indexes: %w", err)
 	}
 
 	result, err := tx.ExecContext(
@@ -218,9 +233,10 @@ func (s *Store) CashOut(ctx context.Context, input CashOutInput) (CashOutResult,
 	}
 
 	return CashOutResult{
-		Status:     StatusCachedOut,
-		Payout:     formatDollars(payout),
-		Multiplier: multiplier.FloatString(8),
+		Status:      StatusCachedOut,
+		Payout:      formatDollars(payout),
+		Multiplier:  formatMultiplier(multiplier),
+		MineIndexes: mineIndexes,
 	}, nil
 }
 
@@ -288,6 +304,20 @@ func multiplierFor(gridSize, mines, openedCells int) (*big.Rat, error) {
 	}
 
 	return multiplier, nil
+}
+
+func truncateMultiplier(multiplier *big.Rat) *big.Rat {
+	hundredths := new(big.Rat).Mul(multiplier, big.NewRat(100, 1))
+	units := new(big.Int).Quo(hundredths.Num(), hundredths.Denom())
+	if ceiling := big.NewInt(maxMultiplierHundredths); units.Cmp(ceiling) > 0 {
+		units = ceiling
+	}
+
+	return new(big.Rat).SetFrac(units, big.NewInt(100))
+}
+
+func formatMultiplier(multiplier *big.Rat) string {
+	return truncateMultiplier(multiplier).FloatString(2)
 }
 
 func payoutFor(betAmount int64, multiplier *big.Rat) (int64, error) {

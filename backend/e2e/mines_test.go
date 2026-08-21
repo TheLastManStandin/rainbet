@@ -75,11 +75,11 @@ func TestMinesCashoutEndToEnd(t *testing.T) {
 
 	var cashout cashoutResponse
 	decodeJSON(t, body, &cashout)
-	if cashout.Status != game.StatusCachedOut || cashout.Payout != "11.45" || cashout.Multiplier != "1.09090909" {
+	if cashout.Status != game.StatusCachedOut || cashout.Payout != "11.44" || cashout.Multiplier != "1.09" {
 		t.Fatalf("cashout response = %+v", cashout)
 	}
-	if balance := userBalance(t, backend.db); balance != 10095 {
-		t.Fatalf("balance = %d, want 10095", balance)
+	if balance := userBalance(t, backend.db); balance != 10094 {
+		t.Fatalf("balance = %d, want 10094", balance)
 	}
 
 	status, _ = post(t, backend, fmt.Sprintf("/api/mines/bets/%d/cashout", createdGame.ID), "")

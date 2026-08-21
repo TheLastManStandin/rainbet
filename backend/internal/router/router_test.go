@@ -228,8 +228,8 @@ func TestMinesMoveAndCashOut(t *testing.T) {
 	if len(move.OpenedCells) != 1 || move.OpenedCells[0] != safeCell {
 		t.Fatalf("opened cells = %v, want [%d]", move.OpenedCells, safeCell)
 	}
-	if move.Multiplier != "1.09090909" {
-		t.Fatalf("multiplier = %q, want %q", move.Multiplier, "1.09090909")
+	if move.Multiplier != "1.09" {
+		t.Fatalf("multiplier = %q, want %q", move.Multiplier, "1.09")
 	}
 
 	cashoutRecorder := httptest.NewRecorder()
@@ -245,7 +245,7 @@ func TestMinesMoveAndCashOut(t *testing.T) {
 	if err := json.NewDecoder(cashoutRecorder.Body).Decode(&cashout); err != nil {
 		t.Fatalf("decode cashout response: %v", err)
 	}
-	if cashout.Status != game.StatusCachedOut || cashout.Payout != "10.90" || cashout.Multiplier != "1.09090909" {
+	if cashout.Status != game.StatusCachedOut || cashout.Payout != "10.90" || cashout.Multiplier != "1.09" {
 		t.Fatalf("cashout = %+v", cashout)
 	}
 	if balance := userBalance(t, db); balance != 10090 {
