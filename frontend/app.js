@@ -889,7 +889,7 @@ function stopSliderDrag(event) {
 elements.minesTrack.addEventListener("pointerup", stopSliderDrag);
 elements.minesTrack.addEventListener("pointercancel", stopSliderDrag);
 
-elements.betAmount.addEventListener("change", (event) => {
+elements.betAmount.addEventListener("input", (event) => {
   state.betAmount = event.target.value;
   setError();
 });
