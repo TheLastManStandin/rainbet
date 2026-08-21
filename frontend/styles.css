@@ -21,15 +21,21 @@
 
 html,
 body {
+  width: 100%;
+  max-width: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 body {
   min-height: 100vh;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
   background-color: #0f1328;
   color: var(--text);
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Montserrat", "Montserrat Fallback", -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
@@ -40,11 +46,15 @@ button {
   border: 0;
   background: none;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input {
   font: inherit;
   color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .is-hidden {
@@ -138,12 +148,15 @@ input {
 .mines-container {
   display: flex;
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   min-height: calc(100vh - 64px);
   align-items: stretch;
 }
 
 .game-side-bar-container {
   display: flex;
+  max-width: 100%;
   flex-direction: column;
   flex-basis: 340px;
   width: 340px;
@@ -427,6 +440,7 @@ input {
 
 .bar-content-container {
   position: relative;
+  touch-action: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -525,6 +539,7 @@ input {
 .mines-range {
   position: relative;
   z-index: 6;
+  pointer-events: none;
   width: 100%;
   height: 34px;
   margin: 0;
@@ -538,6 +553,7 @@ input {
 .mines-range::-webkit-slider-thumb {
   width: 0;
   height: 34px;
+  visibility: hidden;
   background-color: transparent;
   cursor: ew-resize;
   -webkit-appearance: none;
@@ -703,6 +719,7 @@ input {
   position: relative;
   display: flex;
   flex: 1;
+  min-width: 0;
   flex-direction: column;
   width: 100%;
   background-color: var(--bg-game);
@@ -1353,16 +1370,15 @@ input {
   align-items: center;
   justify-content: center;
   gap: 15px;
-  width: 200px;
+  min-width: 250px;
   margin-top: 20px;
+  padding: 16px;
   overflow: hidden;
-  background: radial-gradient(113.42% 70.74% at 100.04% center, rgba(122, 94, 158, 0.1) 0%, rgba(94, 103, 158, 0) 29.15%),
-    radial-gradient(113.33% 70.71% at 0% center, rgba(94, 103, 158, 0.1) 0%, rgba(94, 103, 158, 0) 29.15%),
-    radial-gradient(61.01% 100% at 49.82% 100%, rgba(135, 78, 200, 0.3) 0%, rgba(78, 200, 115, 0) 77.55%),
-    linear-gradient(334deg, rgba(114, 83, 202, 0.15) 19.99%, rgba(166, 143, 251, 0.15) 80.01%), #2c2e5b;
-  border: 2.5px solid #54a5ee;
-  border-radius: 6.074px;
-  box-shadow: 0 2px 50px rgba(52, 125, 209, 0.635), 0 2px 50px #151934;
+  background: radial-gradient(85.23% 100% at 49.82% 100%, rgba(0, 184, 52, 0.1) 0%, rgba(0, 184, 52, 0.02) 100%),
+    linear-gradient(rgba(92, 178, 116, 0.1) 0%, rgba(92, 178, 116, 0.1) 100%), #292b57;
+  border: 2.5px solid #84ec9d;
+  border-radius: 10px;
+  box-shadow: 0 2.3px 100px rgba(82, 255, 131, 0.2), 0 2.3px 46px rgba(10, 11, 15, 0.3);
 }
 
 .win-result-content .multiplier-container {
@@ -1370,20 +1386,22 @@ input {
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: linear-gradient(160deg, rgba(59, 57, 141, 0.3) 11.27%, rgba(53, 63, 122, 0.5) 88.73%), #2b3866;
-  border: 1.725px solid #54a5ee;
-  border-radius: 5.75px 5.75px 94.3px 89.7px;
-  -webkit-mask-image: linear-gradient(rgba(0, 0, 0, 0) 1%, #2b3866 50%);
-  mask-image: linear-gradient(rgba(0, 0, 0, 0) 1%, #2b3866 50%);
+  height: 50px;
+  background: linear-gradient(160deg, rgba(82, 255, 131, 0.1) 11.27%, rgba(66, 255, 120, 0.1) 88.73%);
+  border: 2px solid #52ff83;
+  border-radius: 6px;
+  -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0.463) 80%);
+  mask-image: radial-gradient(circle, rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0.463) 80%);
 }
 
 .win-result-content .multiplier {
-  padding: 15px 0;
-  background: linear-gradient(196deg, #fff 15.24%, #fff 39.27%, #a2d0e9 96.69%);
+  position: absolute;
+  top: 24px;
+  background: linear-gradient(160deg, #79ff9f 11.27%, #42ff78 88.73%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-size: 28px;
+  font-size: 34px;
   font-weight: 700;
 }
 
@@ -1391,7 +1409,7 @@ input {
   z-index: 1;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, rgba(125, 217, 52, 0) 0%, rgba(30, 102, 170, 0.2) 50%, rgba(125, 217, 52, 0) 100%);
+  background: linear-gradient(90deg, rgba(125, 217, 52, 0) 0%, rgba(125, 217, 52, 0.2) 50%, rgba(125, 217, 52, 0) 100%);
 }
 
 .win-result-content .background-icon {
@@ -1400,17 +1418,15 @@ input {
   opacity: 0.1;
 }
 
-.win-result-content .background-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
 .win-result-content .win-amount {
   z-index: 1;
-  padding-bottom: 15px;
-  color: var(--text-muted);
+  color: #4caf50;
   font-size: 1.1em;
+}
+
+.win-result-content .win-amount span {
+  color: #79ff9f;
+  font-size: 18px;
 }
 
 .game-display-footer {
@@ -1540,23 +1556,70 @@ input {
   .mines-game-content {
     padding: 20px 40px;
   }
+
+  .game-side-bar-container {
+    flex-basis: 320px;
+    width: 320px;
+    min-width: 320px;
+  }
 }
 
 @media (max-width: 900px) {
+  .site-header {
+    height: 56px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .wordmark {
+    font-size: 16px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .balance-pill {
+    height: 36px;
+    padding: 0 10px;
+    gap: 6px;
+  }
+
+  .balance-label {
+    display: none;
+  }
+
+  .header-button {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
   .mines-container {
     flex-direction: column-reverse;
     align-items: stretch;
+    min-height: 0;
   }
 
   .game-side-bar-container {
+    flex-basis: auto;
     width: 100%;
     min-width: 0;
-    flex-basis: auto;
+    padding: 12px;
     border-right: 0;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .game-display-header {
+    padding: 12px 14px;
   }
 
   .mines-game-content {
     padding: 10px;
+  }
+
+  .mines-grid {
+    max-width: min(100%, calc(100vh - 320px));
   }
 
   .mines-grid-25,
@@ -1564,5 +1627,72 @@ input {
   .mines-grid-49,
   .mines-grid-64 {
     gap: 10px;
+  }
+
+  .game-display-footer {
+    padding: 10px 14px;
+  }
+
+  .win-result-content {
+    min-width: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header {
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .wordmark span {
+    display: none;
+  }
+
+  .header-actions {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .balance-pill {
+    flex-shrink: 1;
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  .balance-pill strong {
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-button {
+    flex-shrink: 0;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .game-side-bar-container {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .bet-type-toggle {
+    padding-bottom: 8px;
+  }
+
+  .mines-grid {
+    max-width: 100%;
+  }
+
+  .current-profit-container .profit-amount {
+    height: 64px;
+  }
+
+  .current-profit-container .profit-label,
+  .current-profit-container .profit-item span {
+    font-size: 11px;
   }
 }

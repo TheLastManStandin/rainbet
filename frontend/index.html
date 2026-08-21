@@ -2,9 +2,12 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#151833" />
     <title>Mines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -144,10 +147,9 @@
           <div class="mines-grid mines-grid-25" id="mines-board" role="grid" aria-label="Поле Mines"></div>
           <div class="mines-result is-hidden" id="win-display">
             <div class="win-result-content">
-              <div class="background-icon"><img src="/assets/diamond-final.png" alt="" /></div>
-              <div class="multiplier-container"><span class="multiplier" id="win-multiplier">1.00x</span></div>
-              <div class="divider"></div>
-              <span class="win-amount" id="win-amount">$0.00</span>
+              <span class="multiplier" id="win-multiplier">1.00x</span>
+              <div class="multiplier-container"></div>
+              <div class="win-amount"><span id="win-amount">$0.00</span></div>
             </div>
           </div>
         </div>
